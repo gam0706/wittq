@@ -2,12 +2,12 @@
 <br>for 안드로이드용</h1><br>
 <br><br>
 
-__[소개글]__ <br>
+<h2>__[소개글]__ </h2><br>
 
 
 
 <br><br>
-__[레퍼런스]__ <br>
+<h2>__[레퍼런스]__ </h2><br>
 <h3>TQQQ 200MA 투자 전략</h3>
 Credit : 아기티큐 <br>
 https://www.fmkorea.com/9464264293 <br>
