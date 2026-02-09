@@ -1,6 +1,13 @@
 <h1>TQQQ 200 이평선 & QQQ 3/161 위젯 
 <br>for 안드로이드용</h1><br>
+<br><br>
 
+__[소개글]__ <br>
+
+
+
+<br><br>
+__[레퍼런스]__ <br>
 <h3>TQQQ 200MA 투자 전략</h3>
 Credit : 아기티큐 <br>
 https://www.fmkorea.com/9464264293 <br>
