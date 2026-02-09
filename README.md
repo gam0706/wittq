@@ -14,5 +14,5 @@ Credit : 호리오리<br>
 https://www.fmkorea.com/9466480004<br>
 <br><br>
 
-다운로드 : 
-https://github.com/gam0706/wittq/blob/master/app/release/app-release.apk
+다운로드 : <br>
+[.APK 다운로드](https://github.com/gam0706/wittq/raw/refs/heads/main/app/release/app-release.apk)
