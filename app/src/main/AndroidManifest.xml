@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" />
     <application
+        android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -22,13 +23,21 @@
             </intent-filter>
         </activity>
         <receiver android:name=".StockWidgetReceiver"
-            android:exported="true">
+            android:exported="true" android:label="TQ200">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/stock_widget_info" />
+        </receiver>
+        <receiver android:name=".AGTQWidgetReceiver" android:exported="true" android:label="AGItQ">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/agtq_widget_info" />
         </receiver>
     </application>
 

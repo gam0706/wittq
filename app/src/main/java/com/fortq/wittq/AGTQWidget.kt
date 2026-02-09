@@ -1,0 +1,309 @@
+package com.fortq.wittq
+
+import android.annotation.SuppressLint
+import android.content.Context
+import android.graphics.*
+import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import androidx.glance.*
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.SizeMode
+import androidx.glance.appwidget.provideContent
+import androidx.glance.layout.*
+import androidx.glance.text.FontWeight
+import androidx.glance.text.Text
+import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
+import androidx.core.graphics.createBitmap
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.clickable
+import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.cornerRadius
+import java.text.SimpleDateFormat
+import androidx.glance.ImageProvider
+import androidx.glance.Image
+import androidx.compose.ui.unit.sp
+import androidx.glance.appwidget.updateAll
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
+import java.util.Date
+import java.util.Locale
+import kotlin.Double
+import kotlin.collections.emptyList
+
+
+class UpdateAcCallback : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        try {
+            Log.d("WITTQ_AGTQ_DEBUG", "Refresh button clicked")
+            AGTQWidget().updateAll(context)
+            Log.d("WITTQ_AGTQ_DEBUG", "Widget Refresh completed")
+        } catch (e: Exception) {
+            Log.e("WITTQ_AGTQ_DEBUG", "Widget Refresh failed: ${e.message}", e)
+        }
+    }
+}
+
+class AGTQWidget : GlanceAppWidget() {
+    override val sizeMode = SizeMode.Responsive(
+        setOf(DpSize(300.dp, 100.dp), DpSize(412.dp, 150.dp))
+    )
+
+    @SuppressLint("RestrictedApi")
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        AGTQUpdateWorker.enqueue(context)
+
+        val resultData = withContext(Dispatchers.IO) {
+            try {
+                val tqPrice = StockApiEngine.fetchPrices("TQQQ")
+                if (tqPrice.size < 200) return@withContext null
+
+                val res = AGTQStrategy.calc(tqPrice)
+                val lastUpdate =
+                    SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                Log.d("WITTQ_DEBUG", "Widget updated at: $lastUpdate")
+
+                val chartDays = 90
+                val tqMa200 = calculateMA(tqPrice, 200, chartDays)
+                val tenhigh = tqMa200.map { it * 1.05 }
+                val tstop = tqMa200.map { it * 0.95 }
+                val tmChart = drawChart(
+                    tqPrice.takeLast(chartDays), tqMa200, tenhigh, tstop,
+                    if (res.isbull) Color(0xFF30D158) else Color(0xFFFF453A), 400
+                )
+                Triple(res, tmChart, lastUpdate)
+            } catch (e: Exception) {
+                Log.e("WITTQ_DEBUG", "Data fetch failed: ${e.message}")
+                null
+            }
+        }
+
+        provideContent {
+            val size = LocalSize.current
+
+            if (resultData !=null) {
+                val (res, tmChart, lastUpdate) = resultData
+                AGTQWidgetUI(res, tmChart, lastUpdate, size)
+            } else {
+                Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Updating...", style = TextStyle(color = ColorProvider(Color.White)))
+                        val reftime =
+                            SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                        Text(
+                            reftime, style = TextStyle(
+                                color = ColorProvider(Color.White.copy(alpha = 0.6f)),
+                                fontSize = 10.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun drawChart(
+        prices: List<Double>,
+        ma2Line: List<Double>,
+        highLine: List<Double>,
+        lowLine: List<Double>,
+        color: Color,
+        widgetWidth: Int
+    ): Bitmap {
+        val width = 400
+        val height = 300
+        val bitmap = createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val pricePaint = Paint().apply {
+            this.color = color.toArgb(); style = Paint.Style.STROKE; strokeWidth = 4f; isAntiAlias = true
+        }
+        val ma2Paint = Paint().apply {
+            this.color = 0xFFFFA400.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f; isAntiAlias = true
+        }
+        val highPaint = Paint().apply {
+            this.color = android.graphics.Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 2.5f; isAntiAlias = true
+        }
+        val lowPaint = Paint().apply {
+            this.color = 0xFFFF544F.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f; isAntiAlias = true
+        }
+        val fillPaint = Paint().apply {
+            style = Paint.Style.FILL; isAntiAlias = true; shader = LinearGradient(
+            0f, 0f, 0f,
+            height.toFloat(),
+            color.toArgb(),
+            android.graphics.Color.TRANSPARENT,
+            Shader.TileMode.CLAMP
+        ); alpha = 65
+        }
+
+        val allValues = prices + ma2Line + highLine + lowLine
+        val max = allValues.maxOrNull() ?: 1.0
+        val min = allValues.minOrNull() ?: 0.0
+        val range = (max - min).coerceAtLeast(0.1)
+        fun getY(v: Double) = height - ((v - min) / range * height).toFloat()
+
+        if (ma2Line.isNotEmpty()) {
+            val ma2Path = Path()
+            ma2Line.forEachIndexed { i, p ->
+                val x = i.toFloat() * (width.toFloat() / (ma2Line.size - 1))
+                if (i == 0) ma2Path.moveTo(x, getY(p)) else ma2Path.lineTo(x, getY(p))
+            }
+            canvas.drawPath(ma2Path, ma2Paint)
+        }
+
+        if (highLine.isNotEmpty()) {
+            val hPath = Path()
+            highLine.forEachIndexed { i, p ->
+                val x = i.toFloat() * (width.toFloat() / (highLine.size - 1))
+                if (i == 0) hPath.moveTo(x, getY(p)) else hPath.lineTo(x, getY(p))
+            }
+            canvas.drawPath(hPath, highPaint)
+        }
+
+        if (lowLine.isNotEmpty()) {
+            val lPath = Path()
+            lowLine.forEachIndexed { i, p ->
+                val x = i.toFloat() * (width.toFloat() / (lowLine.size - 1))
+                if (i == 0) lPath.moveTo(x, getY(p)) else lPath.lineTo(x, getY(p))
+            }
+            canvas.drawPath(lPath, lowPaint)
+        }
+        if (prices.isNotEmpty()) {
+            val pricePath = Path()
+            val fillPath = Path()
+            prices.forEachIndexed { i, p ->
+                val x = i.toFloat() * (width.toFloat() / (prices.size - 1))
+                val y = getY(p)
+                if (i == 0) {
+                    pricePath.moveTo(x, y); fillPath.moveTo(x, y)
+                } else {
+                    pricePath.lineTo(x, y); fillPath.lineTo(x, y)
+                }
+            }
+            fillPath.lineTo(width.toFloat(), height.toFloat()); fillPath.lineTo(
+                0f,
+                height.toFloat()
+            ); fillPath.close()
+            canvas.drawPath(fillPath, fillPaint); canvas.drawPath(pricePath, pricePaint)
+        }
+        return bitmap
+    }
+
+    @SuppressLint("DefaultLocale", "RestrictedApi")
+    @Composable
+    fun AGTQWidgetUI(
+        res: AGTResult,
+        tmChart: Bitmap?,
+        refreshTime: String,
+        size: DpSize
+    ) {
+        val factor = (size.width.value / 410f).coerceIn(0.6f, 1.0f)
+        val hpadding = (30 * factor).dp
+        val vpadding = (24 * factor).dp
+
+        Box(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(Color(0xFF1C1C1E))
+                .cornerRadius(34.dp)
+                .padding(horizontal = hpadding, vertical = vpadding)
+        ){
+            Row(modifier = GlanceModifier.fillMaxSize().padding(4.dp)
+            ) {
+                // 1. 왼쪽 2/3: 차트 영역
+                Box(modifier = GlanceModifier.defaultWeight().fillMaxHeight()) {
+                    tmChart?.let {
+                        Image(
+                            provider = ImageProvider(it),
+                            contentDescription = "TQ",
+                            modifier = GlanceModifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                Spacer(modifier = GlanceModifier.width((20 * factor ).dp))
+
+                // 2. 오른쪽 1/3: 정보 영역
+                Column(modifier = GlanceModifier.width((130 * factor).dp).fillMaxHeight(), verticalAlignment = Alignment.Bottom) {
+                    // 시그널 (강조)
+                    Text(
+                        text = "AGitQ Strategy",
+                        style = TextStyle(
+                            fontSize = (16 * factor).sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorProvider(Color.Gray))
+                        )
+
+                    Spacer(modifier = GlanceModifier.defaultWeight())
+                    Text(
+                        res.agtsignal,
+                        style = TextStyle(
+                            fontSize = (19 * factor).sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorProvider(Color(res.agtColor))
+                        )
+                    )
+                    Text(
+                        res.agtaction,
+                        style = TextStyle(fontSize = (16 * factor).sp, fontWeight = FontWeight.Bold, color = ColorProvider(Color.White))
+                    )
+
+                    Spacer(modifier = GlanceModifier.defaultWeight())
+
+                    // 수치 정보
+                    InfoRow("PRICE ", res.tqqqPrice)
+                    InfoRow("ENV HIGH ", res.envHigh)
+                    InfoRow("MA200 ", res.tq200)
+
+                    // 새로고침 버튼
+                    Row (modifier = GlanceModifier.defaultWeight(), verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            "Updated $refreshTime",
+                            style = TextStyle(
+                                color = ColorProvider(Color(0xFF8E8E93)),
+                                fontSize = (11 * factor).sp
+                            )
+                        )
+                        Spacer(modifier = GlanceModifier.width(8.dp))
+                        Box(
+                            modifier = GlanceModifier.fillMaxWidth().padding(top = 4.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Image(
+                                provider = ImageProvider(R.drawable.ic_refresh),
+                                contentDescription = "Refresh",
+                                modifier = GlanceModifier.size((16 * factor).dp)
+                                    .clickable(actionRunCallback<UpdateAcCallback>())
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @SuppressLint("RestrictedApi")
+    @Composable
+    fun InfoRow(label: String, value: Double) {
+        val size = LocalSize.current
+        val factor = (size.width.value / 410f).coerceIn(0.6f, 1.0f)
+        Row(modifier = GlanceModifier.fillMaxWidth()) {
+            Text(label, style = TextStyle(fontSize = (14 * factor).sp, color = ColorProvider(Color.Gray)))
+            Spacer(modifier = GlanceModifier.defaultWeight())
+            Text(String.format("%.2f", value), style = TextStyle(fontSize = (14 * factor).sp, color = ColorProvider(Color.White)))
+        }
+    }
+    private fun calculateMA(prices: List<Double>, period: Int, count: Int): List<Double> {
+        if (prices.size < period) return emptyList()
+        return List(count) { i ->
+            val endIdx = prices.size - count + i
+            prices.subList((endIdx - period + 1).coerceAtLeast(0), endIdx + 1).average()
+        }
+    }
+}

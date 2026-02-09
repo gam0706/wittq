@@ -20,6 +20,75 @@ data class AlgoResult(
     val avgPrice: Double
 )
 
+// AGTQ Data
+data class AGTResult(
+    val tq200: Double,
+    val agtscore: Int,
+    val tqqqPrice: Double,
+    val tqqqPrevClose: Double,
+    val envHigh: Double,
+    val stopLoss: Double,
+    val agtsignal: String,
+    val agtaction: String,
+    val agtColor: Long,
+    val isbull: Boolean,
+    val isbear: Boolean
+)
+
+object AGTQStrategy {
+    fun calc(tqPrice: List<Double>): AGTResult {
+        val bullColor = 0xFF30D158
+        val bearColor = 0xFFFF453A
+        val grayColor = 0xFF8E8E93
+        val purpleColor = 0xFFBF5AF2
+
+        val tqCurrent = tqPrice.lastOrNull() ?: 0.0
+        val tqPrev = if (tqPrice.size >= 2) tqPrice[tqPrice.size - 2] else tqCurrent
+        val tq200 = tqPrice.takeLast(200).average()
+        val envHigh = tq200 * 1.05
+        val stopLoss = tq200 * 0.95
+        var agtscore = 0
+        if (tqPrev >= tq200) agtscore += 1
+        if (tqPrev >= tq200 && tqCurrent >= tq200) agtscore += 1
+        if (tqCurrent < tq200) agtscore = 0
+        val isbull = agtscore >= 1
+        val isbear = agtscore == 0
+
+        val (agtsignal, agtaction, agtColor) = when {
+            // MA200 -5% 도달 또는 MA200 이탈 시 약세
+            tqCurrent <= stopLoss || tqCurrent < tq200 ->
+                Triple("Bearish", "ALL SGOV", bearColor) // RED
+
+            // MA200 < 종가 < 엔벨로프 상단 [집중매수]
+            tqCurrent >= tq200 && tqCurrent <= envHigh -> {
+                if (agtscore == 2) Triple("STRONG", "ALL TQQQ", bullColor) // GREEN
+                else if (agtscore == 1) Triple("FOCUS", "ALL TQQQ", bullColor)
+                else Triple("WAIT", "STAY SGOV", grayColor)
+            }
+
+            tqCurrent > envHigh ->
+                Triple("OVERWEIGHT", "BUY SPY", purpleColor) // purple
+
+            else -> Triple("ERROR", "-", grayColor)
+        }
+
+        return AGTResult(
+            tq200 = tq200,
+            agtscore = agtscore,
+            tqqqPrice = tqCurrent,
+            tqqqPrevClose = tqPrev,
+            envHigh = envHigh,
+            stopLoss = stopLoss,
+            agtsignal = agtsignal,
+            agtaction = agtaction,
+            agtColor = agtColor,
+            isbull = isbull,
+            isbear = isbear
+        )
+    }
+}
+
+
 object TqqqAlgorithm {
     fun calculate(
         qPrices: List<Double>,

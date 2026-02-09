@@ -100,8 +100,6 @@ class StockWidget : GlanceAppWidget() {
             SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
         Log.d("WITTQ_DEBUG", "Widget updated at: $lastUpdate")
 
-
-        // 4. 차트 비트맵 가변 생성: widgetWidth를 인자로 전달하여 해상도 대응
         provideContent {
             val size = LocalSize.current
 
