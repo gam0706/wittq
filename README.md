@@ -1,15 +1,15 @@
-TQQQ 200 이평선 & QQQ 3/161 
-위젯 for 안드로이드용
+<h1>TQQQ 200 이평선 & QQQ 3/161 위젯 
+<br>for 안드로이드용</h1><br>
+<br><br>
 
+<h3>TQQQ 200MA 투자 전략</h3>
+Credit : 아기티큐 <br>
+https://www.fmkorea.com/9464264293 <br>
 
-TQQQ 200MA 투자 전략
-Credit : 아기티큐
-https://www.fmkorea.com/9464264293
+<h3>TQQQ 200MA / QQQ 추가 전략 </h3>
+Credit : 김쨰아빠 <br>
+https://www.fmkorea.com/9430067016 <br>
 
-TQQQ 200MA / QQQ 추가 전략
-Credit : 김쨰아빠
-https://www.fmkorea.com/9430067016
-
-논리 스크립트
-Credit : 호리오리
-https://www.fmkorea.com/9466480004
+<h3>로직</h3>
+Credit : 호리오리<br>
+https://www.fmkorea.com/9466480004<br>
