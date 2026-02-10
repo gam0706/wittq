@@ -123,6 +123,7 @@ fun PriceInputScreen() {
                         withContext(Dispatchers.IO) {
                             StockWidget().updateAll(context)
                             AGTQWidget().updateAll(context)
+                            FGIWidget().updateAll(context)
                             Log.d("WITTQ_DEBUG", "Widget update requested")
                         }
 

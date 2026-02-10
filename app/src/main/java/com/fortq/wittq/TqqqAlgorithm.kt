@@ -67,7 +67,7 @@ object AGTQStrategy {
             }
 
             tqCurrent > envHigh ->
-                Triple("OVERWEIGHT", "BUY SPY", purpleColor) // purple
+                Triple("TRENDING", "BUY SPY", purpleColor) // purple
 
             else -> Triple("ERROR", "-", grayColor)
         }

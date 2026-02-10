@@ -72,9 +72,7 @@ class AGTQWidget : GlanceAppWidget() {
                 val chartDays = 90
                 val tqMa200 = calculateMA(tqPrice, 200, chartDays)
                 val tenhigh = tqMa200.map { it * 1.05 }
-                val tstop = tqMa200.map { it * 0.95 }
-                val tmChart = drawChart(
-                    tqPrice.takeLast(chartDays), tqMa200, tenhigh, tstop,
+                val tmChart = drawChart(tqPrice.takeLast(chartDays), tqMa200, tenhigh,
                     if (res.isbull) Color(0xFF30D158) else Color(0xFFFF453A), 400
                 )
                 Triple(res, tmChart, lastUpdate)
@@ -112,7 +110,6 @@ class AGTQWidget : GlanceAppWidget() {
         prices: List<Double>,
         ma2Line: List<Double>,
         highLine: List<Double>,
-        lowLine: List<Double>,
         color: Color,
         widgetWidth: Int
     ): Bitmap {
@@ -129,9 +126,6 @@ class AGTQWidget : GlanceAppWidget() {
         val highPaint = Paint().apply {
             this.color = android.graphics.Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 2.5f; isAntiAlias = true
         }
-        val lowPaint = Paint().apply {
-            this.color = 0xFFFF544F.toInt(); style = Paint.Style.STROKE; strokeWidth = 2.5f; isAntiAlias = true
-        }
         val fillPaint = Paint().apply {
             style = Paint.Style.FILL; isAntiAlias = true; shader = LinearGradient(
             0f, 0f, 0f,
@@ -142,7 +136,7 @@ class AGTQWidget : GlanceAppWidget() {
         ); alpha = 65
         }
 
-        val allValues = prices + ma2Line + highLine + lowLine
+        val allValues = prices + ma2Line + highLine
         val max = allValues.maxOrNull() ?: 1.0
         val min = allValues.minOrNull() ?: 0.0
         val range = (max - min).coerceAtLeast(0.1)
@@ -164,15 +158,6 @@ class AGTQWidget : GlanceAppWidget() {
                 if (i == 0) hPath.moveTo(x, getY(p)) else hPath.lineTo(x, getY(p))
             }
             canvas.drawPath(hPath, highPaint)
-        }
-
-        if (lowLine.isNotEmpty()) {
-            val lPath = Path()
-            lowLine.forEachIndexed { i, p ->
-                val x = i.toFloat() * (width.toFloat() / (lowLine.size - 1))
-                if (i == 0) lPath.moveTo(x, getY(p)) else lPath.lineTo(x, getY(p))
-            }
-            canvas.drawPath(lPath, lowPaint)
         }
         if (prices.isNotEmpty()) {
             val pricePath = Path()
@@ -244,14 +229,14 @@ class AGTQWidget : GlanceAppWidget() {
                     Text(
                         res.agtsignal,
                         style = TextStyle(
-                            fontSize = (19 * factor).sp,
+                            fontSize = (17 * factor).sp,
                             fontWeight = FontWeight.Bold,
                             color = ColorProvider(Color(res.agtColor))
                         )
                     )
                     Text(
                         res.agtaction,
-                        style = TextStyle(fontSize = (16 * factor).sp, fontWeight = FontWeight.Bold, color = ColorProvider(Color.White))
+                        style = TextStyle(fontSize = (15 * factor).sp, fontWeight = FontWeight.Bold, color = ColorProvider(Color.White))
                     )
 
                     Spacer(modifier = GlanceModifier.defaultWeight())
@@ -288,7 +273,7 @@ class AGTQWidget : GlanceAppWidget() {
         }
     }
 
-    @SuppressLint("RestrictedApi")
+    @SuppressLint("RestrictedApi", "DefaultLocale")
     @Composable
     fun InfoRow(label: String, value: Double) {
         val size = LocalSize.current

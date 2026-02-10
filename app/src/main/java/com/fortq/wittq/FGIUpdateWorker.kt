@@ -6,7 +6,7 @@ import androidx.glance.appwidget.updateAll
 import androidx.work.*
 import java.util.concurrent.TimeUnit
 
-class AGTQUpdateWorker(
+class FGIUpdateWorker(
     private val context: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
@@ -14,7 +14,7 @@ class AGTQUpdateWorker(
     override suspend fun doWork(): Result {
         return try {
             // 위젯의 provideGlance를 다시 실행시켜서 데이터를 새로 가져옵니다.
-            AGTQWidget().updateAll(context)
+            FGIWidget().updateAll(context)
             Result.success()
         } catch (e: Exception) {
             Log.e("WITTQ_WORKER", "Update failed: ${e.message}", e)
@@ -24,14 +24,14 @@ class AGTQUpdateWorker(
     }
 
     companion object {
-        private const val WORK_NAME = "agtq_update_work"
+        private const val WORK_NAME = "fgi_update_work"
 
         fun enqueue(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED) // 인터넷 연결 시에만 작동
                 .build()
 
-            val request = PeriodicWorkRequestBuilder<AGTQUpdateWorker>(
+            val request = PeriodicWorkRequestBuilder<FGIUpdateWorker>(
                 60, TimeUnit.MINUTES // 시스템 최소 주기인 15분 설정
             )
                 .setConstraints(constraints)

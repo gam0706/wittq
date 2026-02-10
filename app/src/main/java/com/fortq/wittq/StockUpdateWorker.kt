@@ -1,6 +1,7 @@
 package com.fortq.wittq
 
 import android.content.Context
+import android.util.Log
 import androidx.glance.appwidget.updateAll
 import androidx.work.*
 import java.util.concurrent.TimeUnit
@@ -16,7 +17,9 @@ class StockUpdateWorker(
             StockWidget().updateAll(context)
             Result.success()
         } catch (e: Exception) {
-            Result.retry() // 실패 시 네트워크 상황 등에 따라 재시도
+            Log.e("WITTQ_WORKER", "Update failed: ${e.message}", e)
+            // 에러 발생 시 재시도하지 않고 성공으로 처리 (무한 루프 방지)
+            Result.success() // 실패 시 네트워크 상황 등에 따라 재시도
         }
     }
 
