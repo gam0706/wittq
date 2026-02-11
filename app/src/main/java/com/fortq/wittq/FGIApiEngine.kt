@@ -11,7 +11,7 @@ import java.net.URL
 object FGApiEngine {
     private const val FGI_URL = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
 
-    suspend fun fetchFgiAll(): Pair<FearGreedData?, List<Double>> {
+    suspend fun fetchAll(): FullData? {
         return withContext(Dispatchers.IO) {
             try {
                 val url = URL(FGI_URL)
@@ -35,7 +35,7 @@ object FGApiEngine {
 
                 if (responseCode != HttpURLConnection.HTTP_OK) {
                     Log.e("WITTQ_FGI_DEBUG", "HTTP error code: $responseCode")
-                    return@withContext Pair(null, emptyList())
+                    return@withContext null
                 }
 
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
@@ -45,91 +45,58 @@ object FGApiEngine {
 
                 // 1. 최신 데이터 파싱
                 val fgObj = jsonObj.getJSONObject("fear_and_greed")
-                val currentData = FearGreedData(
+                val fgData = FearGreedData(
                     score = fgObj.getDouble("score"),
                     rating = fgObj.getString("rating")
                 )
 
-                Log.d("WITTQ_FGI_DEBUG", "Current F&G: ${currentData.score} - ${currentData.rating}")
+                val pcRatio = try {
+                    val pcDataArray = jsonObj.getJSONObject("put_call_options").getJSONArray("data")
+                    if (pcDataArray.length() > 0) {
+                        pcDataArray.getJSONObject(pcDataArray.length() - 1).getDouble("y")
+                    } else {
+                        0.85
+                    }
+                } catch (e: Exception) {
+                    Log.e("WITTQ_FGI_DEBUG", "PC Ratio 파싱 실패, 기본값 사용 : ${e.message}" )
+                    0.85 // 파싱 실패 시 중립값
+                }
+
+                Log.d("WITTQ_FGI_DEBUG", "Current F&G: ${fgData.score} - ${fgData.rating}")
 
                 // 2. 히스토리 데이터 파싱 (90일치)
                 val historicalObj = jsonObj.getJSONObject("fear_and_greed_historical")
-                val dataArray = historicalObj.getJSONArray("data")
+                val fgdataArray = historicalObj.getJSONArray("data")
+
                 val historyList = mutableListOf<Double>()
-                val startIdx = (dataArray.length() - 90).coerceAtLeast(0)
-                for (i in startIdx until dataArray.length()) {
-                    // historical 데이터 내 요소는 {"x": timestamp, "y": score} 형태임
-                    val score = dataArray.getJSONObject(i).getDouble("y")
-                    historyList.add(score)
+                val totalCount = fgdataArray.length()
+                Log.d("WITTQ_FGI_DEBUG", "Total data count: $totalCount")
+
+                val startIdx = (totalCount - 90).coerceAtLeast(0)
+
+                for (i in startIdx until totalCount) {
+                    val fgval = fgdataArray.getJSONObject(i).optDouble("y")
+                    historyList.add(fgval)
                 }
 
-                Pair(currentData as FearGreedData?, historyList.toList())
+                Log.d("WITTQ_FGI_DEBUG", "Fetch Success: FG=${fgData.score}, PC=$pcRatio, History=${historyList.size}")
+                Log.d("WITTQ_FGI_DEBUG", "History First: ${historyList.firstOrNull()}, Last: ${historyList.lastOrNull()}")
+                Log.d("WITTQ_FGI_DEBUG", "First 5: ${historyList.take(5)}")
+                Log.d("WITTQ_FGI_DEBUG", "Last 5: ${historyList.takeLast(5)}")
+
+                FullData(fgData, historyList, pcRatio)
 
             } catch (e: Exception) {
                 Log.e("WITTQ_FGI_DEBUG", "Failed to fetch Fear & Greed: ${e.message}")
-                Pair(null, emptyList())
-            }
-        }
-    }
-
-    /*suspend fun fetchFearGreedHistory(days: Int = 90): List<Double> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val url = URL("https://production.dataviz.cnn.io/index/fearandgreed/graphdata")
-                val connection = url.openConnection() as HttpURLConnection
-                val response = connection.inputStream.bufferedReader().readText()
-                val jsonObj = JSONObject(response)
-                val dataArray = jsonObj.getJSONArray("fear_and_greed_historical") // 히스토리 데이터 추출
-
-                val history = mutableListOf<Double>()
-                val startIdx = (dataArray.length() - days).coerceAtLeast(0)
-                for (i in startIdx until dataArray.length()) {
-                    history.add(dataArray.getJSONObject(i).getDouble("score"))
-                }
-                history
-            } catch (e: Exception) {
-                emptyList()
-            }
-        }
-    }
-
-    private fun parseFearGreedJson(json: String): FearGreedData? {
-        try {
-            val jsonObj = JSONObject(json)
-            val score = jsonObj.getJSONObject("fear_and_greed")
-                .getDouble("score")
-            val rating = jsonObj.getJSONObject("fear_and_greed")
-                .getString("rating")
-
-            return FearGreedData(score, rating)
-        } catch (e: Exception) {
-            Log.e("WITTQ_FGI_DEBUG", "Parse error: ${e.message}")
-            return null
-        }
-    }*/
-
-    suspend fun fetchPutCallRatio(): Double? {
-        return withContext(Dispatchers.IO) {
-            try {
-                Log.d("WITTQ_FGI_DEBUG", "Fetching ^CPCS starting...")
-                val prices = StockApiEngine.fetchPrices("^PCQQ")
-                if (prices.isEmpty()) {
-                    Log.e("WITTQ_FGI_DEBUG", "^CPCS data is EMPTY from StockApiEngine")
-                    return@withContext null
-                }
-
-                val ratio = prices.lastOrNull()
-                Log.d("WITTQ_FGI_DEBUG", "Put/Call Ratio: $ratio")
-                ratio
-            } catch (e: Exception) {
-                Log.e("WITTQ_FGI_DEBUG", "Failed to fetch Put/Call: ${e.message}")
                 null
             }
         }
     }
 }
+data class FearGreedData(val score: Double, val rating: String)
 
-data class FearGreedData(
-    val score: Double,  // 0-100
-    val rating: String  // "Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"
+data class FullData(
+    val fgData: FearGreedData,
+    val fgHistory: List<Double>,
+    val pcRatio: Double
 )
