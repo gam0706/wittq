@@ -482,6 +482,7 @@ class FGIWidget : GlanceAppWidget() {
             ratio < 0.63 -> "Caution"
             ratio < 0.72 -> "Positive"
             ratio < 0.79 -> "neutral"
+            ratio < 0.86 -> "Negative"
             else -> "Caution"
         }
     }
