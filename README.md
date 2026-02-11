@@ -3,8 +3,14 @@
 <br><br>
 
 <h2>__[소개글]__ </h2><br>
+TQQQ/200MA를 기본으로 하는 전략들을 쉽게 모니터링 할 수 있도록
+위젯으로 만든 앱입니다. 
+추가로 모니터링하면 좋을 만한 정보들을 신규 위젯으로 추가하고 있습니다.
 
 
+
+다운로드 : <br>
+[.APK 다운로드](https://github.com/gam0706/wittq/releases/download/update/wittq_v3.apk)
 
 <br><br>
 <h2>__[레퍼런스]__ </h2><br>
@@ -21,5 +27,3 @@ Credit : 호리오리<br>
 https://www.fmkorea.com/9466480004<br>
 <br><br>
 
-다운로드 : <br>
-[.APK 다운로드](https://github.com/gam0706/wittq/raw/refs/heads/main/app/release/app-release.apk)
