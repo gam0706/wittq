@@ -16,17 +16,6 @@ TQQQ/200MA를 기본으로 하는 전략들을 쉽게 모니터링 할 수 있�
 [.APK 다운로드]((https://github.com/gam0706/wittq/releases/download/v6.3/wittq_v62.apk))
 
 <br><br>
-<h2>__[레퍼런스]__ </h2><br>
-<h3>TQQQ 200MA 투자 전략</h3>
-Credit : 아기티큐 <br>
-https://www.fmkorea.com/9464264293 <br>
-
-<h3>TQQQ 200MA / QQQ 추가 전략 </h3>
-Credit : 김쨰아빠 <br>
-https://www.fmkorea.com/9430067016 <br>
-
-<h3>로직</h3>
-Credit : 호리오리<br>
-https://www.fmkorea.com/9466480004<br>
-<br><br>
+<h2>__[Thanks to]__ </h2><br>
+아기티큐, 김째아빠, 눈덩이티큐, 호리오리 
 
