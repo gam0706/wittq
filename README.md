@@ -13,7 +13,7 @@ TQQQ/200MA를 기본으로 하는 전략들을 쉽게 모니터링 할 수 있�
 
 <br><br>
 다운로드 : <br>
-[.APK 다운로드](https://github.com/gam0706/wittq/releases/download/update/wittq_v3.apk)
+[.APK 다운로드]((https://github.com/gam0706/wittq/releases/download/v6.3/wittq_v62.apk))
 
 <br><br>
 <h2>__[레퍼런스]__ </h2><br>
